@@ -29,13 +29,17 @@ module Apartment
     config.to_prepare do
       next if ARGV.any? { |arg| arg =~ /\Aassets:(?:precompile|clean)\z/ }
 
-      begin
-        Apartment.connection_class.connection_pool.with_connection do
-          Apartment::Tenant.init
+      if Apartment.connection_class
+        begin
+          Apartment.connection_class.connection_pool.with_connection do
+            Apartment::Tenant.init
+          end
+        rescue ::ActiveRecord::NoDatabaseError
+          # Since `db:create` and other tasks invoke this block from Rails 5.2.0,
+          # we need to swallow the error to execute `db:create` properly.
         end
-      rescue ::ActiveRecord::NoDatabaseError
-        # Since `db:create` and other tasks invoke this block from Rails 5.2.0,
-        # we need to swallow the error to execute `db:create` properly.
+      else
+        puts "No connection class available"
       end
     end
 
